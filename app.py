@@ -84,6 +84,39 @@ def wylogowanie():
     response = make_response(jsonify({'komunikat': 'Wylogowanie zakończyło się sukcesem'}))
     response.set_cookie('session_id', '', expires=0)  # Usunięcie ciasteczka sesji
     return response
+
+
+@app.route('/gry', methods=['GET', 'POST'])
+def wyszukajGry():
+
+    if request.method == 'POST':
+    
+        data = request.json
+        tytul = data.get('tytul')
+
+
+        gry = db.execute("SELECT * FROM gry WHERE name LIKE ?", ('%' + tytul + '%',))
+
+        print(gry)
+
+        return jsonify(gry)
+
+    else:
+        try:
+
+            tytul = request.args.get('q', '')
+
+            if not tytul:
+                return jsonify([])
+            
+            gry = db.execute("SELECT * FROM gry WHERE name LIKE ?", ('%' + tytul + '%',))
+
+            return jsonify(gry)
+        
+        except Exception as e:
+            
+            print(f"Error during search: {str(e)}")
+            return jsonify({'error': 'Internal server error'}), 500
         
 if __name__ == '__main__':
     app.run(debug=True)
