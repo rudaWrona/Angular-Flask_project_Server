@@ -6,7 +6,8 @@ from cs50 import SQL
 from flask_cors import CORS #pozwala na komunikację między apką Ionic i serwerem we flasku, które są na różnych domenach
 import os
 import time
-
+import secrets
+from flask_mailman import Mail, EmailMessage
 from dekoratory import login_required
 
 app = Flask(__name__)
@@ -21,7 +22,18 @@ app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS, ale w sumie moje t
 Session(app)
 CORS(app, supports_credentials=True)
 
+# Konfiguracja email
+app.config['MAIL_SERVER'] = 'mail.vanilladice.pl'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'szmuk@vanilladice.pl'
+app.config['MAIL_PASSWORD'] = 'parNmqT2f&O4'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+
 db = SQL("sqlite:///baza_danych.db")
+
+mail = Mail()
+mail.init_app(app)
 
 # Konfiguracja pod awatara
 UPLOAD_FOLDER = '../vanilladice.pl/pliki/avatary'
@@ -35,7 +47,7 @@ def allowed_file(filename):
 
 @app.before_request
 def ensure_session():
-    # Wymuszenie załadowania sesji, nawet dla multipart/form-data
+    # Wymuszenie załadowania sesji, nawet dla multipart/form-data. Miało to pomóc przy przesyłaniu avatara, ale nie podziałało.
     session.modified = True
 
 
@@ -65,16 +77,19 @@ def rejestracja():
         email = data.get('email')
 
         haslo_hash = generate_password_hash(haslo)
-        email_hash = generate_password_hash(email)
+
+        uzytkownik = db.execute("SELECT * FROM uzytkownicy WHERE nazwa = ?", nazwa)
+        print(uzytkownik)
+
+        if uzytkownik:
+            return jsonify({'blad': 'Nazwa użytkownika jest już zajęta'}), 401
 
         try:
-            db.execute("INSERT INTO uzytkownicy (nazwa, haslo, email, avatarPath) VALUES (?, ?, ?, ?)", nazwa, haslo_hash, email_hash, "pliki/avatary/avatar.png")
-            komunikat = "Rejestracja zakończona sukcesem"
-            return jsonify(komunikat), 200
+            db.execute("INSERT INTO uzytkownicy (nazwa, haslo, email, avatarPath) VALUES (?, ?, ?, ?)", nazwa, haslo_hash, email, "pliki/avatary/avatar.png")
+            return jsonify({'komunikat': 'Rejestracja zakończona sukcesem'}), 200
         # cs50.SQL.execute będzie traktował duplikat nazwy jako ValueError ze zwględu na UNIQUE INDEX w tabeli
         except ValueError:
-            komunikat = "Nazwa użytkownika bądź emial niedostępne"
-            return jsonify(komunikat=komunikat), 401
+            return jsonify({'blad': 'email już przypisany do innego konta'}), 401
 
             
 @app.route("/logowanie", methods=['GET', 'POST'])
@@ -92,7 +107,7 @@ def logowanie():
         check = db.execute("SELECT * FROM uzytkownicy WHERE nazwa = ?", nazwa)
 
         if len(check) != 1 or not check_password_hash(check[0]["haslo"], haslo):
-            return jsonify({'komunikat': 'Niepoprawne dane logowania'}), 401
+            return jsonify({'blad': 'Niepoprawne dane logowania'}), 401
 
         session['uzytkownik'] = nazwa
         session['uzytkownik_id'] = db.execute("SELECT id FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['id']
@@ -157,7 +172,7 @@ def wyszukajGry():
         except Exception as e:
             
             print(f"Error during search: {str(e)}")
-            return jsonify({'error': 'Internal server error'}), 500
+            return jsonify({'blad': 'Błąd serwera'}), 500
         
 
 @app.route('/dodaj-avatar', methods=['POST', 'GET'])
@@ -168,18 +183,18 @@ def upload_avatar():
 
             # Sprawdza czy plik został przesłany
             if 'avatar' not in request.files:
-                return jsonify({'error': 'Nie przesłano pliku'}), 400
+                return jsonify({'blad': 'Nie przesłano pliku'}), 400
             
             file = request.files['avatar']
 
             
             # Sprawdza czy plik został wybrany
             if file.filename == '':
-                return jsonify({'error': 'Nie wybrano pliku'}), 400
+                return jsonify({'blad': 'Nie wybrano pliku'}), 400
 
             # Sprawdza czy plik jest dozwolonego typu
             if not allowed_file(file.filename):
-                return jsonify({'error': 'Niedozwolony typ pliku'}), 400
+                return jsonify({'blad': 'Niedozwolony typ pliku'}), 400
 
             # Sprawdza rozmiar pliku
             file.seek(0, os.SEEK_END)
@@ -187,7 +202,7 @@ def upload_avatar():
             file.seek(0)  # Resetuje wskaźnik pliku
             
             if file_size > MAX_FILE_SIZE:
-                return jsonify({'error': 'Plik jest zbyt duży'}), 400
+                return jsonify({'blad': 'Plik jest zbyt duży'}), 400
 
             # Zabezpiecza nazwę pliku
             filename = secure_filename(file.filename)
@@ -218,12 +233,78 @@ def upload_avatar():
                      
             db.execute("UPDATE uzytkownicy SET avatarPath = ? WHERE id = ?", file_url, user_id)
             
-            return jsonify({
-                'message': 'Plik przesłany pomyślnie',
-            })
+            return jsonify({'komunikat': 'Plik przesłany pomyślnie'})
 
         except Exception as e:
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'blad': str(e)}), 500
+        
+
+@app.route("/wyslij-kod", methods=["POST"])
+def wyslij_kod():
+        
+    data = request.json
+    email = data.get('email')
+
+    uzytkownik = db.execute("SELECT * FROM uzytkownicy WHERE email = ?", email)
+
+    if not uzytkownik:
+        return jsonify({"blad": "Użytkownik z takim mailem nie istnieje"}), 404
+    
+    kod = ''.join(secrets.choice('0123456789') for _ in range(6))
+
+    db.execute("INSERT INTO reset_hasel (uzytkownik_id, kod, uzyty) VALUES (?, ?, 0)", uzytkownik[0]["id"], kod)
+
+    wiadomosc = EmailMessage(
+    'Resetowanie hasła', #tytuł maila
+    f"""
+    Zawartość generowana automatycznie. Prosimy na nią nie odpowiadać.
+
+    Twój kod do resetowania hasła to: 
+    
+    {kod}
+    
+    Wprowadź ten kod w aplikacji, aby ustawić nowe hasło.
+        
+    Jeśli nie prosiłeś o reset hasła, zignoruj tę wiadomość. 
+    
+    """,
+    app.config['MAIL_USERNAME'], #od kogo
+    [email] # do kogo
+    )
+    try:
+        wiadomosc.send()
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas wysyłania wiadomości z kodem: {e}'})
+    
+    return jsonify(({'komunikat': 'Wiadomość z kodem została wysłana na email'}))
+
+@app.route("/zmiana-hasla", methods=["POST"])
+def zmien_haslo():
+
+    data = request.json
+    email = data.get('email')
+    noweHaslo = data.get('noweHaslo')
+    kod = data.get('kodRes')
+
+    print(email, noweHaslo, kod)
+
+    uzytkownik = db.execute("SELECT * FROM uzytkownicy WHERE email = ?", email)
+
+    if not uzytkownik:
+        return jsonify({'blad': 'Użytkownik z takim mailem nie istnieje'}), 404
+
+    reset_info = db.execute("SELECT * FROM reset_hasel WHERE uzytkownik_id = ? AND kod = ? AND uzyty = 0 ORDER BY czas DESC LIMIT 1", uzytkownik[0]["id"], kod)
+
+    if not reset_info:
+        return jsonify({'blad': 'Nieprawidłowy kod'}), 400
+
+    haslo_hash = generate_password_hash(noweHaslo)
+
+    db.execute("UPDATE uzytkownicy SET haslo = ? WHERE id = ?", haslo_hash, uzytkownik[0]["id"])
+
+    db.execute("UPDATE reset_hasel SET uzyty = 1 WHERE id = ?", reset_info[0]["id"])
+
+    return jsonify({'komunikat': 'Hasło zostało zmienione'})
         
 if __name__ == '__main__':
     app.run(debug=True)
