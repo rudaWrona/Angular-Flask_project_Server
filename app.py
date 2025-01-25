@@ -305,6 +305,82 @@ def zmien_haslo():
     db.execute("UPDATE reset_hasel SET uzyty = 1 WHERE id = ?", reset_info[0]["id"])
 
     return jsonify({'komunikat': 'Hasło zostało zmienione'})
+
+
+@app.route("/zapisz-wydarzenie", methods=["POST"])
+def zapisz_wydarzenie():
+
+    data = request.json
+    nazwa = data.get('name')
+    dzien = data.get('date')
+    czas = data.get('time')
+    miejsce = data.get('place')
+    sloty = data.get('slots')
+    organizator = data.get('owner')
+    opis = data.get('details')
+
+    dostepneGry = data.get('games')
+    preferowanaGra = data.get('chosen_game')
+
+    organizator_id = session['uzytkownik_id']
+
+    db.execute("INSERT INTO wydarzenia (nazwa, dzien, czas, miejsce, sloty, organizator_id, opis) VALUES (?, ?, ?, ?, ?, ?, ?)", nazwa, dzien, czas, miejsce, sloty, organizator_id, opis)
+
+    wydarzenie_id = db.execute("SELECT id FROM wydarzenia WHERE organizator = ? AND dzien = ? AND czas = ?", organizator_id, dzien, czas)[0]["id"]
+
+    for gra in dostepneGry:
+        db.execute("INSERT INTO ankiety (wydarzenie_id, gra) VALUES (?, ?)", wydarzenie_id, gra)
+    
+    db.execute("INSERT INTO zapisy (uzytkownik_id, wydarzenie_id, preferowana_gr') VALUES (?, ?, ?)", organizator_id, wydarzenie_id, preferowanaGra)
+
+    db.execute("UPDATE ankiety SET punkty = punkty + 1 WHERE gra = ?", preferowanaGra)
+
+
+@app.route("/wydarzenia", methods=["GET"])
+def wydarzenia():
+
+    wydarzenia = db.execute("SELECT * FROM wydarzenia")
+
+    wydarzeniaDoPrzeslania = {}
+
+    for wydarzenie in wydarzenia:
+
+        organizator = db.execute("SELECT nazwa FROM uzytkownicy WHERE id =?", wydarzenie['organizator_id'])[0]['nazwa']
+
+        gry = db.execute("SELECT gra, punkty FROM ankiety WHERE wydarzenie_id = ?", wydarzenie['id'])
+        print(gry)
+        
+        gryDoPrzeslania = []
+        for gra in gry:
+            gryDoPrzeslania.append({"game" : gra['gra'], "votes" : gra['punkty']})
+
+        gracze = db.execute("SELECT nazwa FROM uzytkownicy JOIN zapisy ON uzytkownicy.id=zapisy.uzytkownik_id WHERE wydarzenie_id = ?", wydarzenie['id'])
+        graczeDoPrzeslania = []
+        for gracz in gracze:
+            graczeDoPrzeslania.append(gracz['nazwa'])
+        print(gracze)
+
+        wydarzeniaDoPrzeslania[wydarzenie['id']] = {
+            "date" : wydarzenie['dzien'],
+            "time" : wydarzenie['czas'],
+            "details" : wydarzenie['opis'],
+            "name" : wydarzenie['nazwa'],
+            "owner" : organizator, #podaje ID organizatora, nazwę trzeba sprawdzić w tabeli uzytkownicy
+            "place" : wydarzenie['miejsce'],
+            "slots" : wydarzenie['sloty'],
+            "games" : gryDoPrzeslania,
+            "players" : graczeDoPrzeslania,
+
+    }
+        
+    return jsonify(wydarzeniaDoPrzeslania)
+
+
+
+#@app.route("/zapisz-do-gry", methods=["POST"])
+#def zapisz_do_gry():
+
+
         
 if __name__ == '__main__':
     app.run(debug=True)
