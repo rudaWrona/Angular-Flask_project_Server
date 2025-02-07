@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, session, make_response, send_from_directory
+from flask import Flask, request, jsonify, session, make_response
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -87,7 +87,7 @@ def rejestracja():
         try:
             db.execute("INSERT INTO uzytkownicy (nazwa, haslo, email, avatarPath) VALUES (?, ?, ?, ?)", nazwa, haslo_hash, email, "pliki/avatary/avatar.png")
             return jsonify({'komunikat': 'Rejestracja zakończona sukcesem'}), 200
-        # cs50.SQL.execute będzie traktował duplikat nazwy jako ValueError ze zwględu na UNIQUE INDEX w tabeli
+        # cs50.SQL.execute będzie traktował duplikat emaila jako ValueError ze zwględu na UNIQUE INDEX w tabeli
         except ValueError:
             return jsonify({'blad': 'email już przypisany do innego konta'}), 401
 
@@ -111,6 +111,7 @@ def logowanie():
 
         session['uzytkownik'] = nazwa
         session['uzytkownik_id'] = db.execute("SELECT id FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['id']
+        session['uzytkownik_email'] = db.execute("SELECT email FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['email']
         session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
         #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
         response = make_response({'komunikat': "Zalogowaleś się jako " + session['uzytkownik']})
@@ -123,6 +124,7 @@ def sesja_status():
     if 'uzytkownik' in session:
 
         session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
+        session['uzytkownik_email'] = db.execute("SELECT email FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['email']
         #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
 
         # Flask automatycznie dopasowuje 'session' do ciasteczka w żądaniu
@@ -130,7 +132,8 @@ def sesja_status():
             'zalogowany': True,
             'uzytkownik_id': session['uzytkownik_id'],
             'uzytkownik': session['uzytkownik'],
-            'avatar' : session['avatar']
+            'avatar' : session['avatar'],
+            'email' : session['uzytkownik_email']
         })
     return jsonify({'zalogowany': False})#, 401
 
