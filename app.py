@@ -113,7 +113,7 @@ def logowanie():
         session['uzytkownik_id'] = db.execute("SELECT id FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['id']
         session['uzytkownik_email'] = db.execute("SELECT email FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['email']
         session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
-        #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
+
         response = make_response({'komunikat': "Zalogowaleś się jako " + session['uzytkownik']})
         return response
 
@@ -125,7 +125,6 @@ def sesja_status():
 
         session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
         session['uzytkownik_email'] = db.execute("SELECT email FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['email']
-        #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
 
         # Flask automatycznie dopasowuje 'session' do ciasteczka w żądaniu
         return jsonify({
@@ -135,7 +134,7 @@ def sesja_status():
             'avatar' : session['avatar'],
             'email' : session['uzytkownik_email']
         })
-    return jsonify({'zalogowany': False})#, 401
+    return jsonify({'zalogowany': False})
 
     
 @app.route('/wylogowanie', methods=['GET', 'POST'])
@@ -162,7 +161,6 @@ def wyszukajGry():
 
     else:
         try:
-
             tytul = request.args.get('q', '')
 
             if not tytul:
@@ -173,8 +171,6 @@ def wyszukajGry():
             return jsonify(gry)
         
         except Exception as e:
-            
-            print(f"Error during search: {str(e)}")
             return jsonify({'blad': 'Błąd serwera'}), 500
         
 
@@ -215,10 +211,10 @@ def upload_avatar():
             filepath = os.path.join(UPLOAD_FOLDER, unique_filename)
 
             
-            # Zapisujemy plik
+            # Zapisuje plik
             file.save(filepath)
             
-            # URL do pliku (do użycia w aplikacji frontendowej i zapisanie do tabeli)
+            # URL do pliku (do użycia w aplikacji frontendowej i zapisania do tabeli)
             file_url = f"pliki/avatary/{unique_filename}"
 
             user_id = request.form.get("uzytkownik_id")
@@ -226,7 +222,7 @@ def upload_avatar():
             user = db.execute("SELECT * FROM uzytkownicy WHERE id = ?", user_id)
             
             if user:
-                # Usuń stary plik jeśli istnieje
+                # Usuwa stary plik jeśli istnieje
                 old_avatar = db.execute("SELECT avatarPath FROM uzytkownicy WHERE id = ?", user_id)[0]['avatarPath']
                 if old_avatar and old_avatar != "pliki/avatary/avatar.png":
                     old_filename = old_avatar.split('/')[-1]
@@ -321,7 +317,6 @@ def zapisz_wydarzenie():
         czas = data.get('time')
         miejsce = data.get('place')
         sloty = data.get('slots')
-        organizator = data.get('owner')
         opis = data.get('details')
 
         dostepneGry = data.get('games')
@@ -368,7 +363,6 @@ def wydarzenia():
         gracze = db.execute("SELECT nazwa, avatarPath FROM uzytkownicy JOIN zapisy ON uzytkownicy.id=zapisy.uzytkownik_id WHERE wydarzenie_id = ?", wydarzenie['id'])
         graczeDoPrzeslania = []
         for gracz in gracze:
-            #graczeDoPrzeslania.append(gracz['nazwa'])
             graczeDoPrzeslania.append({'player' : gracz['nazwa'], 'avatar' : "https://www.vanilladice.pl/" + gracz['avatarPath']})
 
         wydarzeniaDoPrzeslania[wydarzenie['id']] = {
@@ -381,7 +375,6 @@ def wydarzenia():
             "slots" : wydarzenie['sloty'],
             "games" : gryDoPrzeslania,
             "players" : graczeDoPrzeslania,
-
     }
         
     return jsonify(wydarzeniaDoPrzeslania)
@@ -448,7 +441,7 @@ def usun_wydarzenie():
             db.execute("DELETE FROM zapisy WHERE wydarzenie_id = ?", wydarzenie_id)
             db.execute("DELETE FROM wydarzenia WHERE id = ?", wydarzenie_id)
         else:
-            return jsonify({'blad' : 'Nie jesteś organizatorem tego wydarzenia.'})
+            return jsonify({'blad' : 'Nie jesteś organizatorem tego wydarzenia.'}), 401
 
     except Exception as e:
         return jsonify({'blad' : f'Błąd podczas usuwania wydarzenia: {e}'})
@@ -459,8 +452,6 @@ def usun_wydarzenie():
 @app.route("/modyfikuj-wydarzenie", methods=["POST", "PUT"])
 @login_required
 def modyfikuj_wydarzenie():
-
-    #print("Otrzymane dane JSON:", request.get_json())
 
     try:
         data = request.json
