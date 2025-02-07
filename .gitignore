@@ -169,4 +169,7 @@ cython_debug/
 
 flask_session/
 
+#bazy danych
+*.db
+
 # End of https://www.toptal.com/developers/gitignore/api/flask
