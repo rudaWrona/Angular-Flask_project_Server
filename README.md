@@ -1,5 +1,3 @@
-# Angular-Flask_project_Server
+# Flask API do 
 
-Serwer do obsługi aplikacji testowej Angular-Flask
-
-Uruchomianie: "flask run"
+Serwer do obsługi aplikacji BoardGames/Planszówki - projektu zaliczeniowego na studia WSB Merito
