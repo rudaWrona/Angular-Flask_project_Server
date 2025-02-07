@@ -1,3 +1,3 @@
-# Flask API do 
+# Flask API
 
-Serwer do obsługi aplikacji BoardGames/Planszówki - projektu zaliczeniowego na studia WSB Merito
+Aplikacja serwerowa do obsługi aplikacji BoardGames/Planszówki - projektu zaliczeniowego na studia WSB Merito
