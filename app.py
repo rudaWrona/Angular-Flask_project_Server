@@ -111,8 +111,8 @@ def logowanie():
 
         session['uzytkownik'] = nazwa
         session['uzytkownik_id'] = db.execute("SELECT id FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['id']
-        #session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
-        session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
+        session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
+        #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", nazwa)[0]['avatarPath']
         response = make_response({'komunikat': "Zalogowaleś się jako " + session['uzytkownik']})
         return response
 
@@ -122,8 +122,8 @@ def sesja_status():
 
     if 'uzytkownik' in session:
 
-        #session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
-        session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
+        session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
+        #session['avatar'] = "C:/Users/przem/Desktop/Aplikacje/STUDIA/Aplikacja zaliczeniowa/Angular-Flask-Logging/vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
 
         # Flask automatycznie dopasowuje 'session' do ciasteczka w żądaniu
         return jsonify({
@@ -308,32 +308,40 @@ def zmien_haslo():
 
 
 @app.route("/zapisz-wydarzenie", methods=["POST"])
+@login_required
 def zapisz_wydarzenie():
 
-    data = request.json
-    nazwa = data.get('name')
-    dzien = data.get('date')
-    czas = data.get('time')
-    miejsce = data.get('place')
-    sloty = data.get('slots')
-    organizator = data.get('owner')
-    opis = data.get('details')
+    try:
+        data = request.json
+        nazwa = data.get('name')
+        dzien = data.get('date')
+        czas = data.get('time')
+        miejsce = data.get('place')
+        sloty = data.get('slots')
+        organizator = data.get('owner')
+        opis = data.get('details')
 
-    dostepneGry = data.get('games')
-    preferowanaGra = data.get('chosen_game')
+        dostepneGry = data.get('games')
 
-    organizator_id = session['uzytkownik_id']
+        preferowanaGra = data.get('chosen_game')
 
-    db.execute("INSERT INTO wydarzenia (nazwa, dzien, czas, miejsce, sloty, organizator_id, opis) VALUES (?, ?, ?, ?, ?, ?, ?)", nazwa, dzien, czas, miejsce, sloty, organizator_id, opis)
+        organizator_id = session['uzytkownik_id']
 
-    wydarzenie_id = db.execute("SELECT id FROM wydarzenia WHERE organizator = ? AND dzien = ? AND czas = ?", organizator_id, dzien, czas)[0]["id"]
+        db.execute("INSERT INTO wydarzenia (nazwa, dzien, czas, miejsce, sloty, organizator_id, opis) VALUES (?, ?, ?, ?, ?, ?, ?)", nazwa, dzien, czas, miejsce, sloty, organizator_id, opis)
 
-    for gra in dostepneGry:
-        db.execute("INSERT INTO ankiety (wydarzenie_id, gra) VALUES (?, ?)", wydarzenie_id, gra)
-    
-    db.execute("INSERT INTO zapisy (uzytkownik_id, wydarzenie_id, preferowana_gr') VALUES (?, ?, ?)", organizator_id, wydarzenie_id, preferowanaGra)
+        wydarzenie_id = db.execute("SELECT id FROM wydarzenia WHERE organizator_id = ? AND dzien = ? AND czas = ?", organizator_id, dzien, czas)[0]["id"]
 
-    db.execute("UPDATE ankiety SET punkty = punkty + 1 WHERE gra = ?", preferowanaGra)
+        for gra in dostepneGry:
+            db.execute("INSERT INTO ankiety (wydarzenie_id, gra) VALUES (?, ?)", wydarzenie_id, gra)
+        
+        db.execute("INSERT INTO zapisy (uzytkownik_id, wydarzenie_id, preferowana_gra) VALUES (?, ?, ?)", organizator_id, wydarzenie_id, preferowanaGra)
+
+        db.execute("UPDATE ankiety SET punkty = punkty + 1 WHERE wydarzenie_id = ? AND gra = ?", wydarzenie_id, preferowanaGra)
+
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas tworzenia wydarzenia: {e}'})
+
+    return jsonify({'komunikat': 'Wydarzenie zostało pomyślnie utworzone'})
 
 
 @app.route("/wydarzenia", methods=["GET"])
@@ -348,24 +356,24 @@ def wydarzenia():
         organizator = db.execute("SELECT nazwa FROM uzytkownicy WHERE id =?", wydarzenie['organizator_id'])[0]['nazwa']
 
         gry = db.execute("SELECT gra, punkty FROM ankiety WHERE wydarzenie_id = ?", wydarzenie['id'])
-        print(gry)
         
         gryDoPrzeslania = []
         for gra in gry:
             gryDoPrzeslania.append({"game" : gra['gra'], "votes" : gra['punkty']})
 
-        gracze = db.execute("SELECT nazwa FROM uzytkownicy JOIN zapisy ON uzytkownicy.id=zapisy.uzytkownik_id WHERE wydarzenie_id = ?", wydarzenie['id'])
+
+        gracze = db.execute("SELECT nazwa, avatarPath FROM uzytkownicy JOIN zapisy ON uzytkownicy.id=zapisy.uzytkownik_id WHERE wydarzenie_id = ?", wydarzenie['id'])
         graczeDoPrzeslania = []
         for gracz in gracze:
-            graczeDoPrzeslania.append(gracz['nazwa'])
-        print(gracze)
+            #graczeDoPrzeslania.append(gracz['nazwa'])
+            graczeDoPrzeslania.append({'player' : gracz['nazwa'], 'avatar' : "https://www.vanilladice.pl/" + gracz['avatarPath']})
 
         wydarzeniaDoPrzeslania[wydarzenie['id']] = {
             "date" : wydarzenie['dzien'],
             "time" : wydarzenie['czas'],
             "details" : wydarzenie['opis'],
             "name" : wydarzenie['nazwa'],
-            "owner" : organizator, #podaje ID organizatora, nazwę trzeba sprawdzić w tabeli uzytkownicy
+            "owner" : organizator,
             "place" : wydarzenie['miejsce'],
             "slots" : wydarzenie['sloty'],
             "games" : gryDoPrzeslania,
@@ -377,10 +385,107 @@ def wydarzenia():
 
 
 
-#@app.route("/zapisz-do-gry", methods=["POST"])
-#def zapisz_do_gry():
+@app.route("/zapisz-do-gry", methods=["POST"])
+@login_required
+def zapisz_do_gry():
+
+    try:
+        data = request.json
+        wydarzenie_id = data.get('eventId')
+        preferowanaGra = data.get('selectedGame')
+        gracz = data.get('player')
+        gracz_id = session['uzytkownik_id']
+
+        db.execute("INSERT INTO zapisy (uzytkownik_id, wydarzenie_id, preferowana_gra) VALUES (?, ?, ?)", gracz_id, wydarzenie_id, preferowanaGra)
+
+        db.execute("UPDATE ankiety SET punkty = punkty + 1 WHERE wydarzenie_id = ? AND gra = ?", wydarzenie_id, preferowanaGra)
+
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas zapisywania na wydarzenie: {e}'})
+
+    return jsonify({'komunikat' : 'Użytkownik pomyślnie zapisany na wydarzenie'})
 
 
-        
+@app.route("/usun-mnie-z-gry", methods=["POST"])
+@login_required
+def usun_mnie_z_gry():
+
+    try:
+        data = request.json
+        wydarzenie_id = data.get('eventId')
+        gracz_id = session['uzytkownik_id']
+        preferowanaGra = db.execute("SELECT preferowana_gra FROM zapisy WHERE uzytkownik_id = ? AND wydarzenie_id = ?", gracz_id, wydarzenie_id)[0]['preferowana_gra']
+
+        print(wydarzenie_id, gracz_id)
+
+        db.execute("DELETE FROM zapisy WHERE wydarzenie_id = ? AND uzytkownik_id = ?", wydarzenie_id, gracz_id)
+
+        db.execute("UPDATE ankiety SET punkty = punkty - 1 WHERE wydarzenie_id = ? AND gra = ?", wydarzenie_id, preferowanaGra)
+
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas wypisywania z wydarzenie: {e}'})
+
+    return jsonify({'komunikat' : 'Użytkownik pomyślnie wypisany z wydarzenia'})
+
+
+@app.route("/usun-wydarzenie", methods=["POST"])
+@login_required
+def usun_wydarzenie():
+
+    try:
+        data = request.json
+        wydarzenie_id = data.get('eventId')
+        gracz_id = session['uzytkownik_id']
+
+        wydarzenieDoUsuniecia = db.execute("SELECT * FROM wydarzenia WHERE id = ?", wydarzenie_id)
+
+        #Sprawdza, czy zalogowany uzytkownik to organizator wydarzenia
+        if gracz_id == wydarzenieDoUsuniecia[0]['organizator_id']:
+            db.execute("DELETE FROM ankiety WHERE wydarzenie_id = ?", wydarzenie_id)
+            db.execute("DELETE FROM zapisy WHERE wydarzenie_id = ?", wydarzenie_id)
+            db.execute("DELETE FROM wydarzenia WHERE id = ?", wydarzenie_id)
+        else:
+            return jsonify({'blad' : 'Nie jesteś organizatorem tego wydarzenia.'})
+
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas usuwania wydarzenia: {e}'})
+
+    return jsonify({'komunikat' : 'Wydarzenie zostało pomyślnie usunięte'})
+
+
+@app.route("/modyfikuj-wydarzenie", methods=["POST", "PUT"])
+@login_required
+def modyfikuj_wydarzenie():
+
+    #print("Otrzymane dane JSON:", request.get_json())
+
+    try:
+        data = request.json
+        wydarzenie_id = data.get('id')
+        nazwa = data.get('name')
+        dzien = data.get('date')
+        czas = data.get('time')
+        miejsce = data.get('place')
+        sloty = data.get('slots')
+        opis = data.get('details')
+
+        if nazwa:
+            db.execute("UPDATE wydarzenia SET nazwa = ? WHERE id = ?", nazwa, wydarzenie_id)
+        if dzien:
+            db.execute("UPDATE wydarzenia SET dzien = ? WHERE id = ?", dzien, wydarzenie_id)
+        if czas:
+            db.execute("UPDATE wydarzenia SET czas = ? WHERE id = ?", czas, wydarzenie_id)
+        if miejsce:
+            db.execute("UPDATE wydarzenia SET miejsce = ? WHERE id = ?", miejsce, wydarzenie_id)
+        if sloty:
+            db.execute("UPDATE wydarzenia SET sloty = ? WHERE id = ?", sloty, wydarzenie_id)
+        if opis:
+            db.execute("UPDATE wydarzenia SET opis = ? WHERE id = ?", opis, wydarzenie_id)
+
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas modyfikacji wydarzenia: {e}'})
+    
+    return jsonify({'komunikat' : 'Wydarzenie zostało pomyślnie zmodyfikowane'})
+
 if __name__ == '__main__':
     app.run(debug=True)
