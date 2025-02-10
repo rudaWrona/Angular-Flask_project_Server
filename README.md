@@ -138,7 +138,7 @@ lub dla błędów:
 - Odpowiednie kody statusu HTTP (200, 400, 401, 404, 500)
 
 ## Kontrola Cache
-Zapobiega zapisywaniu i buforowaniu odpowiedzi przez przeglądarki i serwery pośredniczące.
+Zapobiega zapisywaniu i buforowaniu odpowiedzi przez przeglądarki i serwery pośredniczące. Jest to ważne przy dynamicznych danych, jak status sesji czy lista wydarzeń
 API implementuje nagłówki no-cache dla wszystkich odpowiedzi:
 - Cache-Control: no-cache, no-store, must-revalidate
 - Expires: 0
