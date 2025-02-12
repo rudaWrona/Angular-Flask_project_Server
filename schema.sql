@@ -52,3 +52,4 @@ CREATE TABLE ankiety (
     punkty INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (wydarzenie_id) REFERENCES wydarzenia(id)
 );
+CREATE INDEX "nazwa_index" on "gry" ("Name");
