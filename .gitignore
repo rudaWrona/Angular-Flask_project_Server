@@ -171,5 +171,6 @@ flask_session/
 
 #bazy danych
 *.db
+baza_danych.db
 
 # End of https://www.toptal.com/developers/gitignore/api/flask
