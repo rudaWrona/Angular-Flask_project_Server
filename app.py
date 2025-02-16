@@ -20,7 +20,16 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Wymagane dla żądań cross-or
 app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS, ale w sumie moje testowanie nie jest HTTPS i jakoś działa.
 
 Session(app)
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True, origins=[
+    "https://planszowki-3cbf8.web.app",  #frontend jest hostowany na serwerze
+    "capacitor://localhost",   # Dla aplikacji na Android/iOS zbudowanej w Capacitor
+    "http://localhost",        # Dla testów na emulatorze lub w przeglądarce
+    "http://localhost:8100",    # Dla testów w aplikacji Ionic na komputerze (`ionic serve`)
+    "ionic://localhost",        # Alternatywny scheme dla Ionic
+    "app://localhost",          # Dla aplikacji natywnych
+    "file://",                  # Dla aplikacji mobilnych (bardzo ważne!)
+    "*"                         #Zostawiam to, bo żadna inna pozycja z listy nie daje dostępu aplikacji moblinej na Androidzie.
+]) #Cross-Origin Resource Sharing. Przeglądarki stosują politykę Same-Origin Policy (SOP), która domyślnie blokuje takie żądania ze względów bezpieczeństwa. Potencjalnie może 
 
 # Konfiguracja email
 app.config['MAIL_SERVER'] = 'mail.vanilladice.pl'
@@ -69,7 +78,6 @@ def index():
 def rejestracja():
 
     if request.method == 'POST':
-
 
         data = request.json        
         nazwa = data.get('nazwa')
@@ -277,6 +285,7 @@ def wyslij_kod():
     
     return jsonify(({'komunikat': 'Wiadomość z kodem została wysłana na email'}))
 
+
 @app.route("/zmiana-hasla", methods=["POST"])
 def zmien_haslo():
 
@@ -378,7 +387,6 @@ def wydarzenia():
     }
         
     return jsonify(wydarzeniaDoPrzeslania)
-
 
 
 @app.route("/zapisz-do-gry", methods=["POST"])
