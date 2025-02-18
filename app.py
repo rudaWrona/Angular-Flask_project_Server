@@ -87,7 +87,6 @@ def rejestracja():
         haslo_hash = generate_password_hash(haslo)
 
         uzytkownik = db.execute("SELECT * FROM uzytkownicy WHERE nazwa = ?", nazwa)
-        print(uzytkownik)
 
         if uzytkownik:
             return jsonify({'blad': 'Nazwa użytkownika jest już zajęta'}), 401
@@ -133,6 +132,10 @@ def sesja_status():
 
         session['avatar'] = "https://www.vanilladice.pl/" + db.execute("SELECT avatarPath FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['avatarPath']
         session['uzytkownik_email'] = db.execute("SELECT email FROM uzytkownicy WHERE nazwa = ?", session['uzytkownik'])[0]['email']
+        session['ulubione'] = []
+        ulubione = db.execute("SELECT gra FROM ulubione WHERE uzytkownik_id = ?", session['uzytkownik_id'])
+        for ulubiona in ulubione:
+            session['ulubione'].append(ulubiona['gra'].title())
 
         # Flask automatycznie dopasowuje 'session' do ciasteczka w żądaniu
         return jsonify({
@@ -140,7 +143,8 @@ def sesja_status():
             'uzytkownik_id': session['uzytkownik_id'],
             'uzytkownik': session['uzytkownik'],
             'avatar' : session['avatar'],
-            'email' : session['uzytkownik_email']
+            'email' : session['uzytkownik_email'],
+            'ulubione' : session['ulubione']
         })
     return jsonify({'zalogowany': False})
 
@@ -183,6 +187,7 @@ def wyszukajGry():
         
 
 @app.route('/dodaj-avatar', methods=['POST', 'GET'])
+@login_required
 def upload_avatar():
 
     if request.method == 'POST':
@@ -488,6 +493,53 @@ def modyfikuj_wydarzenie():
         return jsonify({'blad' : f'Błąd podczas modyfikacji wydarzenia: {e}'})
     
     return jsonify({'komunikat' : 'Wydarzenie zostało pomyślnie zmodyfikowane'})
+
+
+@app.route("/dodaj-do-ulubionych", methods=['POST'])
+@login_required
+def dodaj_do_ulubionych():
+
+    data = request.json        
+    ulubiona = data.get('ulubiona').lower()
+    uzytkownik_id = session['uzytkownik_id']
+
+    print(ulubiona)
+
+    ulubioneCheck = []
+    ulubione = db.execute("SELECT gra FROM ulubione WHERE uzytkownik_id = ?", uzytkownik_id)
+    for gra in ulubione:
+        ulubioneCheck.append(gra['gra'])
+
+    print(ulubioneCheck)
+
+    if ulubiona in ulubioneCheck:
+        return jsonify({'blad' : f'Tę grę już posiadasz w ulubionych'}), 400
+
+    try:
+        db.execute("INSERT INTO ulubione (uzytkownik_id, gra) VALUES (?, ?)", uzytkownik_id, ulubiona)
+    
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas dodawania gry do ulubionych: {e}'}), 400
+    
+    return jsonify({'komunikat' : 'Gra została pomyślnie dodana do ulubionych'}), 200
+
+
+@app.route("/usun-z-ulubionych", methods=['POST'])
+@login_required
+def usun_z_ulubionych():
+
+    data = request.json        
+    ulubiona = data.get('ulubionaDoUsuniecia').lower()
+    uzytkownik_id = session['uzytkownik_id']
+
+    try:
+        db.execute("DELETE FROM ulubione WHERE uzytkownik_id = ? AND gra = ?", uzytkownik_id, ulubiona)
+    
+    except Exception as e:
+        return jsonify({'blad' : f'Błąd podczas usuwania gry z ulubionych: {e}'}), 400
+    
+    return jsonify({'komunikat' : 'Gra została pomyślnieusunięta z ulubionych'}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

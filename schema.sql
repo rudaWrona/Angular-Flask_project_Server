@@ -16,8 +16,8 @@ CREATE TABLE uzytkownicy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nazwa TEXT NOT NULL UNIQUE,
     haslo TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
-    avatarPath TEXT);
+    email TEXT NOT NULL UNIQUE
+, avatarPath TEXT);
 CREATE TABLE reset_hasel (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uzytkownik_id INTEGER NOT NULL,
@@ -40,8 +40,7 @@ CREATE TABLE wydarzenia (
 CREATE TABLE zapisy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uzytkownik_id INTEGER NOT NULL,
-    wydarzenie_id INTEGER NOT NULL,
-    preferowana_gra TEXT NOT NULL,
+    wydarzenie_id INTEGER NOT NULL, preferowana_gra TEXT NOT NULL default Talisman,
     FOREIGN KEY (uzytkownik_id) REFERENCES uzytkownicy(id),
     FOREIGN KEY (wydarzenie_id) REFERENCES wydarzenia(id)
 );
@@ -53,3 +52,8 @@ CREATE TABLE ankiety (
     FOREIGN KEY (wydarzenie_id) REFERENCES wydarzenia(id)
 );
 CREATE INDEX "nazwa_index" on "gry" ("Name");
+CREATE TABLE ulubione (
+uzytkownik_id INTEGER NOT NULL,
+gra TEXT NOT NULL,
+FOREIGN KEY (uzytkownik_id) REFERENCES uzytkownicy(id)
+);
