@@ -15,13 +15,13 @@ app = Flask(__name__)
 #app.config['APPLICATION_ROOT'] = '/bg-test'
 app.config["SESSION_PERMANENT"] = True #Sesja nie będzie wyłączana po zamknięcu przeglądarki
 app.config["SESSION_TYPE"] = "filesystem"
-app.secret_key = 'super_secret_key'
+app.secret_key = 'super_secret_key' #żywany do podpisywania ciasteczek sesyjnych
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Wymagane dla żądań cross-origin, Chrome się burzy, jak ciasteczko nie ma tych nagłówków.
 app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS, ale w sumie moje testowanie nie jest HTTPS i jakoś działa.
 
 Session(app)
 CORS(app, supports_credentials=True, origins=[
-    "https://planszowki-3cbf8.web.app",  #frontend jest hostowany na serwerze
+    "https://planszowki-62c41.web.app",  #frontend jest hostowany na serwerze
     "capacitor://localhost",   # Dla aplikacji na Android/iOS zbudowanej w Capacitor
     "http://localhost",        # Dla testów na emulatorze lub w przeglądarce
     "http://localhost:8100",    # Dla testów w aplikacji Ionic na komputerze (`ionic serve`)
@@ -299,8 +299,6 @@ def zmien_haslo():
     noweHaslo = data.get('noweHaslo')
     kod = data.get('kodRes')
 
-    print(email, noweHaslo, kod)
-
     uzytkownik = db.execute("SELECT * FROM uzytkownicy WHERE email = ?", email)
 
     if not uzytkownik:
@@ -389,7 +387,7 @@ def wydarzenia():
             "slots" : wydarzenie['sloty'],
             "games" : gryDoPrzeslania,
             "players" : graczeDoPrzeslania,
-    }
+        }
         
     return jsonify(wydarzeniaDoPrzeslania)
 
@@ -424,8 +422,6 @@ def usun_mnie_z_gry():
         wydarzenie_id = data.get('eventId')
         gracz_id = session['uzytkownik_id']
         preferowanaGra = db.execute("SELECT preferowana_gra FROM zapisy WHERE uzytkownik_id = ? AND wydarzenie_id = ?", gracz_id, wydarzenie_id)[0]['preferowana_gra']
-
-        print(wydarzenie_id, gracz_id)
 
         db.execute("DELETE FROM zapisy WHERE wydarzenie_id = ? AND uzytkownik_id = ?", wydarzenie_id, gracz_id)
 
@@ -503,14 +499,10 @@ def dodaj_do_ulubionych():
     ulubiona = data.get('ulubiona').lower()
     uzytkownik_id = session['uzytkownik_id']
 
-    print(ulubiona)
-
     ulubioneCheck = []
     ulubione = db.execute("SELECT gra FROM ulubione WHERE uzytkownik_id = ?", uzytkownik_id)
     for gra in ulubione:
         ulubioneCheck.append(gra['gra'])
-
-    print(ulubioneCheck)
 
     if ulubiona in ulubioneCheck:
         return jsonify({'blad' : f'Tę grę już posiadasz w ulubionych'}), 400
