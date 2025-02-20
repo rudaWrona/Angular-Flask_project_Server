@@ -1,4 +1,4 @@
-from flask import redirect, render_template, request, session, jsonify
+from flask import session, jsonify
 from functools import wraps
 
 #login function from cs50 finance, secures the view from unregistered user

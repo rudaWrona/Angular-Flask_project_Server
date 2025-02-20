@@ -63,7 +63,6 @@ def ensure_session():
 #Odpowiedzi nie są cashowane i zawsze przesyłane są świeże dane
 @app.after_request
 def after_request(response):
-    """Ensure responses aren't cached"""
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
@@ -198,7 +197,6 @@ def upload_avatar():
                 return jsonify({'blad': 'Nie przesłano pliku'}), 400
             
             file = request.files['avatar']
-
             
             # Sprawdza czy plik został wybrany
             if file.filename == '':
