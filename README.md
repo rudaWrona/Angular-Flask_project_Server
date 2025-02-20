@@ -106,6 +106,16 @@ API służące jako backend dla aplikacji mobilnej, obsługujące uwierzytelnian
 - **Wejście**: Parametr zapytania lub JSON z tytułem gry
 - **Odpowiedź**: Lista pasujących gier
 
+### Lista ulubionych gier
+
+#### POST `/dodaj-do-ulubionych`
+- **Wejście**: JSON z nazwą gry
+- **Odpowiedź**: Potwierdzenie dodania do ulubionych
+
+#### POST `/usun-z-ulubionych`
+- **Wejście**: JSON z nazwą gry
+- **Odpowiedź**: Potwierdzenie usunięcia z ulubionych
+
 ## Formaty Danych
 
 ### Format Żądań
