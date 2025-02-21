@@ -1,5 +1,6 @@
 from flask import request, jsonify, session
 from cs50 import SQL
+from datetime import datetime
 
 db = SQL("sqlite:///baza_danych.db")
 
@@ -70,8 +71,13 @@ def wydarzenia():
             "games" : gryDoPrzeslania,
             "players" : graczeDoPrzeslania,
         }
-        
-    return jsonify(wydarzeniaDoPrzeslania)
+
+    def konwertuj_date(wydarzenie):
+        return datetime.strptime(wydarzenie['date'], "%d.%m.%Y")
+    
+    wydarzeniaDoPrzeslaniaPosortowane = sorted(wydarzeniaDoPrzeslania.values(), key=konwertuj_date, reverse=True)
+    
+    return jsonify(wydarzeniaDoPrzeslaniaPosortowane)
 
 
 def zapisz_do_gry():
