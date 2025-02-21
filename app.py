@@ -41,7 +41,7 @@ CORS(app, supports_credentials=True, origins=[
     "app://localhost",          # Dla aplikacji natywnych
     "file://",                  # Dla aplikacji mobilnych (bardzo ważne!)
     "*"                         #Zostawiam to, bo żadna inna pozycja z listy nie daje dostępu aplikacji moblinej na Androidzie.
-]) #Cross-Origin Resource Sharing. Przeglądarki stosują politykę Same-Origin Policy (SOP), która domyślnie blokuje takie żądania ze względów bezpieczeństwa. Potencjalnie może 
+]) #Cross-Origin Resource Sharing. Przeglądarki stosują politykę Same-Origin Policy (SOP), która domyślnie blokuje takie żądania ze względów bezpieczeństwa. Potencjalnie może być podatnością. Ustawia nagłówek "Access-Control-Allow-Credentials: true", który jest potrzebny, aby przeglądarka przyjęła odpowiedź na żądanie z Credentialami.
 
 db = SQL("sqlite:///baza_danych.db")
 
