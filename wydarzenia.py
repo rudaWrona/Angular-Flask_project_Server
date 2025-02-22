@@ -42,12 +42,12 @@ def wydarzenia():
 
     wydarzenia = db.execute("SELECT * FROM wydarzenia")
 
-    aktualne_wydarzenia = [
+    aktualneWydarzenia = [
         wydarzenie for wydarzenie in wydarzenia 
         if datetime.strptime(wydarzenie['dzien'], "%d.%m.%Y").date() >= date.today()
     ]
 
-    wydarzenia = aktualne_wydarzenia
+    wydarzenia = aktualneWydarzenia
 
     wydarzeniaDoPrzeslania = {}
 
@@ -79,7 +79,7 @@ def wydarzenia():
             "players" : graczeDoPrzeslania,
         }
     
-    #Konwertuje na tablice, żeby zachować kolejność. JSON niestety nie gwarantuje, że elementy będą widoczne w przeglądarce w tej samej kolejności
+    #Konwertuje na tablicę, żeby zachować kolejność. JSON niestety nie gwarantuje, że elementy będą widoczne w przeglądarce w tej samej kolejności
     wydarzeniaDoPrzeslaniaPosortowane = dict(sorted(wydarzeniaDoPrzeslania.items(), key=lambda item: datetime.strptime(item[1]["date"], "%d.%m.%Y"), reverse=True))
 
     def konwertujNaTablice(objekt):
