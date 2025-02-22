@@ -1,6 +1,6 @@
 from flask import request, jsonify, session
 from cs50 import SQL
-from datetime import datetime
+from datetime import date, datetime
 
 db = SQL("sqlite:///baza_danych.db")
 
@@ -42,6 +42,13 @@ def wydarzenia():
 
     wydarzenia = db.execute("SELECT * FROM wydarzenia")
 
+    aktualne_wydarzenia = [
+        wydarzenie for wydarzenie in wydarzenia 
+        if datetime.strptime(wydarzenie['dzien'], "%d.%m.%Y").date() >= date.today()
+    ]
+
+    wydarzenia = aktualne_wydarzenia
+
     wydarzeniaDoPrzeslania = {}
 
     for wydarzenie in wydarzenia:
@@ -71,11 +78,19 @@ def wydarzenia():
             "games" : gryDoPrzeslania,
             "players" : graczeDoPrzeslania,
         }
-
-    def konwertuj_date(wydarzenie):
-        return datetime.strptime(wydarzenie['date'], "%d.%m.%Y")
     
-    wydarzeniaDoPrzeslaniaPosortowane = sorted(wydarzeniaDoPrzeslania.values(), key=konwertuj_date, reverse=True)
+    #Konwertuje na tablice, żeby zachować kolejność. JSON niestety nie gwarantuje, że elementy będą widoczne w przeglądarce w tej samej kolejności
+    wydarzeniaDoPrzeslaniaPosortowane = dict(sorted(wydarzeniaDoPrzeslania.items(), key=lambda item: datetime.strptime(item[1]["date"], "%d.%m.%Y"), reverse=True))
+
+    def konwertujNaTablice(objekt):
+        resultat = []      
+        for key, value in objekt.items():
+            event = value.copy()
+            event['id'] = key
+            resultat.append(event)   
+        return resultat
+
+    wydarzeniaDoPrzeslaniaPosortowane = konwertujNaTablice(wydarzeniaDoPrzeslaniaPosortowane)
     
     return jsonify(wydarzeniaDoPrzeslaniaPosortowane)
 
@@ -86,7 +101,6 @@ def zapisz_do_gry():
         data = request.json
         wydarzenie_id = data.get('eventId')
         preferowanaGra = data.get('selectedGame')
-        gracz = data.get('player')
         gracz_id = session['uzytkownik_id']
 
         db.execute("INSERT INTO zapisy (uzytkownik_id, wydarzenie_id, preferowana_gra) VALUES (?, ?, ?)", gracz_id, wydarzenie_id, preferowanaGra)
