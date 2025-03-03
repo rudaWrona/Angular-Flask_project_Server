@@ -26,10 +26,10 @@ mail.init_app(app)
 
 #app.config['APPLICATION_ROOT'] = '/bg-test'
 app.config["SESSION_PERMANENT"] = True #Sesja nie będzie wyłączana po zamknięcu przeglądarki
-app.config["SESSION_TYPE"] = "filesystem"
-app.secret_key = 'super_secret_key' #żywany do podpisywania ciasteczek sesyjnych
+app.config["SESSION_TYPE"] = "filesystem" #dane sesji przechowywane w systemie plików serwera, zamiast domyślnie w ciasteczkach
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Wymagane dla żądań cross-origin, Chrome się burzy, jak ciasteczko nie ma tych nagłówków.
-app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS, ale w sumie moje testowanie nie jest HTTPS i jakoś działa.
+app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS
+app.secret_key = 'super_secret_key' #używany do podpisywania ciasteczek sesyjnych
 
 Session(app)
 CORS(app, supports_credentials=True, origins=[
@@ -41,13 +41,13 @@ db = SQL("sqlite:///baza_danych.db")
 
 @app.before_request
 def ensure_session():
-    # Wymuszenie załadowania sesji, nawet dla multipart/form-data. Miało to pomóc przy przesyłaniu avatara, ale nie podziałało.
-    session.modified = True
+    # Wymuszenie załadowania sesji, nawet dla multipart/form-data. Sesja jest zawsze aktywna i aktualna.
+    session.modified = True #Flask załaduje i „odświeży” dane sesji nawet wtedy, gdy nie dokonano zmian.
 
 
 #Odpowiedzi nie są cashowane i zawsze przesyłane są świeże dane
 @app.after_request
-def after_request(response):
+def after_request(response): #Wywoływana po przetworzeniu każdego żądania, tuż przed wysłaniem odpowiedzi do klienta.
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Expires"] = 0
     response.headers["Pragma"] = "no-cache"
