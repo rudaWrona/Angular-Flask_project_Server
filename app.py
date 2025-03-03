@@ -34,12 +34,6 @@ app.config['SESSION_COOKIE_SECURE'] = True    # Wymaga HTTPS, ale w sumie moje t
 Session(app)
 CORS(app, supports_credentials=True, origins=[
     "https://planszowki-62c41.web.app",  #frontend jest hostowany na serwerze
-    "capacitor://localhost",   # Dla aplikacji na Android/iOS zbudowanej w Capacitor
-    "http://localhost",        # Dla testów na emulatorze lub w przeglądarce
-    "http://localhost:8100",    # Dla testów w aplikacji Ionic na komputerze (`ionic serve`)
-    "ionic://localhost",        # Alternatywny scheme dla Ionic
-    "app://localhost",          # Dla aplikacji natywnych
-    "file://",                  # Dla aplikacji mobilnych (bardzo ważne!)
     "*"                         #Zostawiam to, bo żadna inna pozycja z listy nie daje dostępu aplikacji moblinej na Androidzie.
 ]) #Cross-Origin Resource Sharing. Przeglądarki stosują politykę Same-Origin Policy (SOP), która domyślnie blokuje takie żądania ze względów bezpieczeństwa. Potencjalnie może być podatnością. Ustawia nagłówek "Access-Control-Allow-Credentials: true", który jest potrzebny, aby przeglądarka przyjęła odpowiedź na żądanie z Credentialami.
 

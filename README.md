@@ -82,7 +82,7 @@ API służące jako backend dla aplikacji mobilnej, obsługujące uwierzytelnian
 - **Odpowiedź**: Potwierdzenie utworzenia
 
 #### GET `/wydarzenia`
-- **Odpowiedź**: Lista wszystkich wydarzeń ze szczegółowymi informacjami
+- **Odpowiedź**: Lista wszystkich wydarzeń ze szczegółowymi informacjami. Gry, które się przedawniły są odrzucane a reszta jest sortowana chronologicznie od najpóźniejszcyh.
 
 #### POST `/zapisz-do-gry`
 - **Wejście**: JSON z ID wydarzenia i preferencją gry
